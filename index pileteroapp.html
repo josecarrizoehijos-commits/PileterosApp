@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a1628">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="PileteroApp">
+<title>PileteroApp</title>
+<link rel="manifest" href="manifest.json">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700&family=Barlow:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--azul:#0a1628;--azul-medio:#0d2044;--cyan:#00c8ff;--blanco:#f0f4ff;--gris:#8899bb;--verde:#00ff88;--amarillo:#ffcc44}
+html,body{height:100%;overflow:hidden;background:var(--azul);color:var(--blanco);font-family:Barlow,sans-serif;-webkit-tap-highlight-color:transparent}
+.bg-fixed{position:fixed;inset:0;z-index:0;background:radial-gradient(ellipse 80% 60% at 50% -10%,#1a3a6b55,transparent),var(--azul);pointer-events:none}
+.grid-overlay{position:fixed;inset:0;z-index:0;pointer-events:none;background-image:linear-gradient(rgba(0,200,255,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,200,255,0.04) 1px,transparent 1px);background-size:60px 60px}
+#app{position:relative;z-index:1;height:100vh;height:100dvh;display:flex;flex-direction:column;max-width:430px;margin:0 auto;overflow:hidden}
+#auth-screen{position:absolute;inset:0;z-index:1000;background:var(--azul);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;overflow-y:auto}
+#auth-screen.oculto{display:none}
+.auth-logo{text-align:center;margin-bottom:32px}
+.auth-eyebrow{font-family:"Barlow Condensed",sans-serif;font-size:12px;font-weight:600;letter-spacing:4px;color:var(--cyan);text-transform:uppercase;margin-bottom:8px}
+.auth-titulo{font-family:"Bebas Neue",sans-serif;font-size:54px;line-height:0.9;letter-spacing:2px;background:linear-gradient(135deg,#fff,var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.auth-sub{font-family:"Barlow Condensed",sans-serif;font-size:13px;color:var(--gris);letter-spacing:2px;margin-top:6px}
+.auth-linea{width:50px;height:2px;margin:14px auto 0;background:linear-gradient(90deg,transparent,var(--cyan),transparent)}
+.auth-card{width:100%;background:rgba(13,32,68,0.85);border:1px solid rgba(0,200,255,0.18);border-radius:20px;padding:26px 22px;backdrop-filter:blur(20px);box-shadow:0 24px 64px rgba(0,0,0,0.4)}
+.tabs{display:flex;gap:4px;background:rgba(0,0,0,0.3);border-radius:10px;padding:4px;margin-bottom:22px}
+.tab{flex:1;padding:10px;border:none;border-radius:8px;font-family:"Barlow Condensed",sans-serif;font-size:14px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--gris);background:none;cursor:pointer;transition:all 0.2s}
+.tab.activa{background:var(--cyan);color:var(--azul)}
+.panel{display:none}
+.panel.visible{display:block}
+.campo{margin-bottom:14px}
+.campo label{display:block;font-family:"Barlow Condensed",sans-serif;font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--gris);margin-bottom:5px}
+.campo input{width:100%;padding:13px 15px;background:rgba(0,0,0,0.35);border:1px solid rgba(0,200,255,0.2);border-radius:10px;color:var(--blanco);font-family:Barlow,sans-serif;font-size:15px;outline:none;transition:border-color 0.2s}
+.campo input:focus{border-color:var(--cyan)}
+.campo input::placeholder{color:rgba(136,153,187,0.4)}
+.btn-auth{width:100%;padding:15px;background:linear-gradient(135deg,var(--cyan),#0090cc);border:none;border-radius:10px;color:var(--azul);font-family:"Bebas Neue",sans-serif;font-size:20px;letter-spacing:2px;cursor:pointer;margin-top:4px;box-shadow:0 4px 20px rgba(0,200,255,0.25);transition:opacity 0.2s}
+.btn-auth:disabled{opacity:0.5}
+.msj{margin-top:10px;padding:10px 14px;border-radius:8px;font-size:13px;display:none}
+.msj.error{background:rgba(255,60,60,0.15);border:1px solid rgba(255,60,60,0.3);color:#ff8888;display:block}
+.msj.ok{background:rgba(0,200,100,0.15);border:1px solid rgba(0,200,100,0.3);color:#66ffbb;display:block}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:13px 18px;border-bottom:1px solid rgba(0,200,255,0.08);background:rgba(10,22,40,0.92);backdrop-filter:blur(10px);flex-shrink:0}
+.topbar-logo{font-family:"Bebas Neue",sans-serif;font-size:18px;letter-spacing:2px;background:linear-gradient(135deg,#fff,var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.topbar-seccion{font-family:"Barlow Condensed",sans-serif;font-size:12px;font-weight:600;letter-spacing:3px;color:var(--gris);text-transform:uppercase}
+.btn-salir{font-family:"Barlow Condensed",sans-serif;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--gris);background:none;border:1px solid rgba(136,153,187,0.2);padding:6px 12px;border-radius:6px;cursor:pointer}
+#pantallas-wrap{flex:1;overflow:hidden;position:relative}
+#pantallas{display:flex;height:100%;transition:transform 0.35s cubic-bezier(0.4,0,0.2,1)}
+.pantalla{min-width:100%;height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.p-inner{padding:18px 18px 110px;min-height:100%}
+.bottom-nav{
+  position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+  width:100%;max-width:430px;
+  display:flex;align-items:flex-end;
+  background:rgba(8,16,36,0.75);
+  backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  border-top:1px solid rgba(0,200,255,0.12);
+  padding:8px 0 max(14px,env(safe-area-inset-bottom));
+  z-index:100;
+}
+.ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 4px;border:none;background:none;cursor:pointer;font-family:"Barlow Condensed",sans-serif;transition:all 0.2s}
+.ni-icon{width:22px;height:22px;display:block;}.ni-icon svg{width:22px;height:22px}
+.ni-lbl{font-size:9px;font-weight:600;color:var(--gris);letter-spacing:1px;text-transform:uppercase}
+.ni.activa .ni-lbl{color:var(--cyan)}
+.ni.activa .ni-icon svg{stroke:var(--cyan);fill:var(--cyan)}
+.ni .ni-icon svg{width:22px;height:22px;transition:all 0.2s}
+.ni-dot{width:4px;height:4px;border-radius:50%;background:var(--cyan);opacity:0;margin-top:-1px}
+.ni.activa .ni-dot{opacity:1}
+.ni-central{
+  flex:none;width:62px;height:62px;border-radius:50%;
+  background:linear-gradient(135deg,var(--cyan),#0070aa);
+  border:3px solid rgba(0,200,255,0.3);
+  box-shadow:0 0 24px rgba(0,200,255,0.45),0 -4px 16px rgba(0,200,255,0.2);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  cursor:pointer;margin-bottom:6px;
+  transition:all 0.2s;
+}
+.ni-central:active{transform:scale(0.93)}
+.ni-central svg{width:24px;height:24px;fill:var(--azul)}
+.ni-central .ni-lbl{color:var(--azul);font-size:7px;font-weight:700;letter-spacing:1px;text-transform:uppercase}
+.ni-central-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:0}
+.sec-titulo{font-family:"Bebas Neue",sans-serif;font-size:30px;letter-spacing:2px;background:linear-gradient(135deg,#fff,var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1}
+.sec-sub{font-family:"Barlow Condensed",sans-serif;font-size:13px;color:var(--gris);letter-spacing:1px;margin-top:3px;margin-bottom:18px}
+.card{background:rgba(13,32,68,0.6);border:1px solid rgba(0,200,255,0.12);border-radius:14px;padding:16px;margin-bottom:13px}
+.card-tit{font-family:"Barlow Condensed",sans-serif;font-size:10px;font-weight:600;letter-spacing:3px;color:var(--gris);text-transform:uppercase;margin-bottom:11px}
+.dash-hero{position:relative;border-radius:16px;overflow:hidden;margin-bottom:13px;min-height:160px;}
+.dash-hero-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:brightness(0.35) saturate(1.2);}
+.dash-hero-overlay{position:absolute;inset:0;background:linear-gradient(160deg,rgba(0,200,255,0.18),rgba(10,22,40,0.7));}
+.dash-hero-content{position:relative;z-index:2;padding:20px;}
+.dash-eye{font-family:"Barlow Condensed",sans-serif;font-size:11px;font-weight:600;letter-spacing:3px;color:var(--cyan);text-transform:uppercase;margin-bottom:3px}
+.dash-nom{font-family:"Bebas Neue",sans-serif;font-size:26px;letter-spacing:1px;color:var(--blanco);margin-bottom:14px}
+.dash-estado{display:inline-flex;align-items:center;gap:8px;background:rgba(0,0,0,0.3);border:1px solid rgba(0,200,255,0.15);border-radius:20px;padding:6px 14px}
+.edo-dot{width:7px;height:7px;border-radius:50%;background:var(--verde);box-shadow:0 0 8px var(--verde)}
+.edo-txt{font-family:"Barlow Condensed",sans-serif;font-size:13px;font-weight:600;color:var(--blanco)}
+.params-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:13px}
+.pc{background:rgba(13,32,68,0.7);border-radius:11px;padding:13px;border:1px solid rgba(0,200,255,0.1);position:relative;overflow:hidden}
+.pc::after{content:"";position:absolute;top:0;left:0;right:0;height:2px}
+.pc.ph::after{background:linear-gradient(90deg,var(--cyan),#0090cc)}
+.pc.cl::after{background:linear-gradient(90deg,#00ff88,#00cc66)}
+.pc.al::after{background:linear-gradient(90deg,#ffcc44,#ff9900)}
+.pc.fe::after{background:linear-gradient(90deg,#aa88ff,#7744cc)}
+.pc-icon-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px}.pc-lbl{font-family:"Barlow Condensed",sans-serif;font-size:10px;font-weight:700;letter-spacing:2px;color:var(--gris);text-transform:uppercase}.pc-icon{width:22px;height:22px;flex-shrink:0}
+.pc-val{font-family:"Bebas Neue",sans-serif;font-size:28px;color:var(--blanco);line-height:1}
+.pc-unit{font-family:"Barlow Condensed",sans-serif;font-size:11px;color:var(--gris)}
+.badge{display:inline-block;margin-top:3px;padding:2px 7px;border-radius:4px;font-family:"Barlow Condensed",sans-serif;font-size:11px;font-weight:600}
+.b-ok{background:rgba(0,255,136,0.15);color:#00ff88}
+.b-alto{background:rgba(255,204,68,0.15);color:#ffcc44}
+.b-bajo{background:rgba(255,68,85,0.15);color:#ff4455}
+.acc-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.acc-btn{background:rgba(13,32,68,0.6);border:1px solid rgba(0,200,255,0.12);border-radius:11px;padding:14px 10px;display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer;transition:all 0.2s}
+.acc-btn:active{transform:scale(0.96)}
+.acc-icon{font-size:22px}
+.acc-lbl{font-family:"Barlow Condensed",sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;color:var(--blanco);text-align:center}
+.vol-btns{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.vb{padding:8px 13px;border:1px solid rgba(0,200,255,0.2);border-radius:8px;background:rgba(0,0,0,0.2);font-family:"Barlow Condensed",sans-serif;font-size:13px;font-weight:600;color:var(--gris);cursor:pointer;transition:all 0.2s}
+.vb.activa{border-color:var(--cyan);background:rgba(0,200,255,0.12);color:var(--cyan)}
+.vol-custom{display:flex;align-items:center;gap:10px;margin-bottom:18px}
+.vol-custom input{flex:1;padding:10px 13px;background:rgba(0,0,0,0.3);border:1px solid rgba(0,200,255,0.2);border-radius:8px;color:var(--blanco);font-family:Barlow,sans-serif;font-size:15px;outline:none}
+.vol-custom input:focus{border-color:var(--cyan)}
+.vol-custom span{font-family:"Barlow Condensed",sans-serif;font-size:13px;color:var(--gris);letter-spacing:1px}
+.sl-wrap{margin-bottom:16px}
+.sl-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
+.sl-lbl{font-family:"Barlow Condensed",sans-serif;font-size:14px;font-weight:600;color:var(--blanco);letter-spacing:1px}
+.sl-val{font-family:"Bebas Neue",sans-serif;font-size:21px;color:var(--cyan)}
+input[type=range]{width:100%;-webkit-appearance:none;height:4px;border-radius:2px;background:rgba(0,200,255,0.15);outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px rgba(0,200,255,0.4)}
+.sl-range{display:flex;justify-content:space-between;margin-top:3px}
+.sl-range span{font-family:"Barlow Condensed",sans-serif;font-size:11px;color:var(--gris)}
+.sl-range .ideal{color:var(--verde);font-weight:700}
+.res-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.res-item{background:rgba(0,0,0,0.3);border:1px solid rgba(0,200,255,0.1);border-radius:11px;padding:13px;text-align:center}
+.ri-emoji{width:36px;height:36px;margin:0 auto 8px;display:flex;align-items:center;justify-content:center;color:var(--cyan);}.ri-emoji svg{width:36px;height:36px;stroke:var(--cyan)}
+.ri-nom{font-family:"Barlow Condensed",sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;color:var(--gris);text-transform:uppercase;margin-bottom:3px}
+.ri-dos{font-family:"Bebas Neue",sans-serif;font-size:24px;color:var(--blanco)}
+.ri-unit{font-family:"Barlow Condensed",sans-serif;font-size:11px;color:var(--gris)}
+.ri-nota{font-family:"Barlow Condensed",sans-serif;font-size:11px;color:var(--cyan);margin-top:3px;font-weight:600}
+.prog-card{background:rgba(13,32,68,0.6);border:1px solid rgba(0,200,255,0.12);border-radius:13px;padding:14px 16px;margin-bottom:13px}
+.prog-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px}
+.prog-lbl{font-family:"Barlow Condensed",sans-serif;font-size:13px;font-weight:600;color:var(--blanco);letter-spacing:1px}
+.prog-num{font-family:"Bebas Neue",sans-serif;font-size:20px;color:var(--cyan)}
+.prog-track{height:4px;background:rgba(0,200,255,0.1);border-radius:2px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--cyan),#0090cc);border-radius:2px;transition:width 0.4s ease}
+.paso-item{background:rgba(13,32,68,0.5);border:1px solid rgba(0,200,255,0.1);border-radius:13px;margin-bottom:9px;overflow:hidden}
+.paso-item.hecho{border-color:rgba(0,255,136,0.25)}
+.paso-head{display:flex;align-items:center;gap:13px;padding:14px;cursor:pointer}
+.paso-n{font-family:"Bebas Neue",sans-serif;font-size:26px;color:rgba(0,200,255,0.25);min-width:34px;transition:color 0.2s}
+.paso-item.abierto .paso-n{color:var(--cyan)}
+.paso-tit{flex:1;font-family:"Barlow Condensed",sans-serif;font-size:15px;font-weight:700;color:var(--blanco);letter-spacing:0.5px}
+.paso-item.hecho .paso-tit{color:var(--gris);text-decoration:line-through}
+.paso-chk{width:25px;height:25px;border-radius:50%;border:2px solid rgba(0,200,255,0.2);display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;cursor:pointer;transition:all 0.25s}
+.paso-item.hecho .paso-chk{background:var(--verde);border-color:var(--verde);color:var(--azul)}
+.paso-chv{color:var(--gris);font-size:13px;transition:transform 0.3s}
+.paso-item.abierto .paso-chv{transform:rotate(180deg);color:var(--cyan)}
+.paso-body{display:none;padding:0 14px 14px}
+.paso-item.abierto .paso-body{display:block}
+.vid-wrap{border-radius:9px;overflow:hidden;border:1px solid rgba(0,200,255,0.15);margin-bottom:10px}
+.vid-wrap iframe{display:block;width:100%;aspect-ratio:16/9;border:none}
+.vid-lock{aspect-ratio:16/9;background:rgba(0,0,0,0.4);border:1px dashed rgba(0,200,255,0.15);border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;margin-bottom:10px}
+.lock-ico{font-size:30px;opacity:0.5}
+.lock-txt{font-family:"Barlow Condensed",sans-serif;font-size:13px;color:var(--gris);letter-spacing:1px;text-align:center}
+.lock-btn{padding:9px 18px;background:linear-gradient(135deg,var(--cyan),#0090cc);border:none;border-radius:7px;color:var(--azul);font-family:"Bebas Neue",sans-serif;font-size:15px;letter-spacing:1px;cursor:pointer}
+.btn-comp{display:inline-flex;align-items:center;gap:7px;padding:8px 14px;background:rgba(0,255,136,0.1);border:1px solid rgba(0,255,136,0.25);border-radius:7px;color:var(--verde);font-family:"Barlow Condensed",sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer}
+.med-form{background:rgba(13,32,68,0.6);border:1px solid rgba(0,200,255,0.12);border-radius:14px;padding:16px;margin-bottom:13px}
+.med-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;margin-bottom:13px}
+.med-lbl{display:block;font-family:"Barlow Condensed",sans-serif;font-size:10px;font-weight:700;letter-spacing:2px;color:var(--gris);text-transform:uppercase;margin-bottom:5px}
+.med-inp{width:100%;padding:11px 7px;text-align:center;background:rgba(0,0,0,0.3);border:1px solid rgba(0,200,255,0.15);border-radius:7px;color:var(--blanco);font-family:"Bebas Neue",sans-serif;font-size:19px;outline:none}
+.med-inp:focus{border-color:var(--cyan)}
+.btn-grd{width:100%;padding:12px;background:linear-gradient(135deg,var(--cyan),#0090cc);border:none;border-radius:9px;color:var(--azul);font-family:"Bebas Neue",sans-serif;font-size:17px;letter-spacing:2px;cursor:pointer}
+.hist-item{background:rgba(13,32,68,0.5);border:1px solid rgba(0,200,255,0.1);border-radius:11px;padding:13px 15px;margin-bottom:9px;display:flex;align-items:center;gap:13px}
+.hf{text-align:center;min-width:38px}
+.hf-dia{font-family:"Bebas Neue",sans-serif;font-size:22px;color:var(--cyan);line-height:1}
+.hf-mes{font-family:"Barlow Condensed",sans-serif;font-size:10px;font-weight:700;color:var(--gris);text-transform:uppercase}
+.hd{width:1px;height:34px;background:rgba(0,200,255,0.15)}
+.hp{flex:1;display:flex;gap:14px}
+.hpi{text-align:center}
+.hpi-l{font-family:"Barlow Condensed",sans-serif;font-size:10px;font-weight:700;color:var(--gris);text-transform:uppercase;letter-spacing:1px}
+.hpi-v{font-family:"Bebas Neue",sans-serif;font-size:17px;color:var(--blanco)}
+.pro-sc{background:var(--azul);min-height:100%;position:relative}
+.pro-vid-wrap{position:relative;width:100%;aspect-ratio:9/16;max-height:58vh;background:#000;overflow:hidden}
+.pro-vid-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:none;pointer-events:none}
+.pro-vid-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 50%,var(--azul) 100%)}
+.pro-cont{padding:0 18px 60px;margin-top:-28px;position:relative;z-index:2}
+.pro-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(0,200,255,0.1);border:1px solid rgba(0,200,255,0.25);border-radius:20px;padding:5px 13px;margin-bottom:13px;font-family:"Barlow Condensed",sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;color:var(--cyan);text-transform:uppercase}
+.pro-tit{font-family:"Bebas Neue",sans-serif;font-size:34px;letter-spacing:2px;background:linear-gradient(135deg,#fff,var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1;margin-bottom:9px}
+.pro-desc{font-family:Barlow,sans-serif;font-size:14px;line-height:1.7;color:rgba(240,244,255,0.65);margin-bottom:18px}
+.pro-feats{display:flex;flex-direction:column;gap:9px;margin-bottom:22px}
+.pro-feat{display:flex;align-items:center;gap:9px;font-family:"Barlow Condensed",sans-serif;font-size:14px;font-weight:600;color:rgba(240,244,255,0.85);letter-spacing:0.5px}
+.btn-comprar{width:100%;padding:17px;background:linear-gradient(135deg,var(--cyan),#0090cc);border:none;border-radius:13px;color:var(--azul);font-family:"Bebas Neue",sans-serif;font-size:21px;letter-spacing:3px;cursor:pointer;box-shadow:0 8px 32px rgba(0,200,255,0.3);display:none}
+.btn-comprar.visible{display:block;animation:popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) both}
+@keyframes popIn{from{opacity:0;transform:scale(0.8) translateY(20px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.pro-precio{text-align:center;margin-top:9px;font-family:"Barlow Condensed",sans-serif;font-size:13px;color:var(--gris);letter-spacing:1px}
+.pro-precio strong{color:rgba(240,244,255,0.7)}
+@media(min-width:430px){#app{border-left:1px solid rgba(0,200,255,0.08);border-right:1px solid rgba(0,200,255,0.08)}}
+
+.cal-card{background:rgba(13,32,68,0.6);border:1px solid rgba(0,200,255,0.15);border-radius:16px;padding:16px;margin-top:4px}
+.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.cal-nav{background:rgba(0,200,255,0.1);border:1px solid rgba(0,200,255,0.2);border-radius:50%;width:34px;height:34px;color:var(--cyan);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;flex-shrink:0}
+.cal-nav:active{background:rgba(0,200,255,0.25)}
+.cal-mes-wrap{text-align:center;flex:1}
+.cal-mes{font-family:"Bebas Neue",sans-serif;font-size:20px;letter-spacing:2px;color:var(--blanco)}
+.cal-stats{font-family:"Barlow Condensed",sans-serif;font-size:11px;color:var(--gris);letter-spacing:1px;margin-top:2px}
+.cal-dias-header{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;margin-bottom:6px}
+.cal-dias-header span{font-family:"Barlow Condensed",sans-serif;font-size:11px;font-weight:700;color:var(--gris);letter-spacing:1px;text-transform:uppercase;padding:4px 0}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal-dia{aspect-ratio:1;border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:"Barlow Condensed",sans-serif;font-size:13px;font-weight:600;color:var(--blanco);cursor:pointer;transition:all 0.2s;border:1px solid transparent;position:relative}
+.cal-dia:active{transform:scale(0.92)}
+.cal-dia.otro-mes{color:rgba(136,153,187,0.3);cursor:default}
+.cal-dia.hoy{border-color:var(--cyan);color:var(--cyan);font-weight:700}
+.cal-dia.mantenimiento{background:rgba(0,200,255,0.2);border-color:rgba(0,200,255,0.4)}
+.cal-dia.mantenimiento::after{content:"";position:absolute;bottom:4px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--cyan)}
+.cal-dia.programado{background:rgba(0,200,255,0.06);border-color:rgba(0,200,255,0.15);border-style:dashed}
+.cal-footer{display:flex;gap:14px;margin-top:12px;padding-top:10px;border-top:1px solid rgba(0,200,255,0.08);flex-wrap:wrap}
+.cal-leyenda{display:flex;align-items:center;gap:6px;font-family:"Barlow Condensed",sans-serif;font-size:11px;color:var(--gris);letter-spacing:0.5px}
+.cal-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+</style>
+</head>
+<body>
+<div class="bg-fixed"></div>
+<div class="grid-overlay"></div>
+<div id="app">
+
+<div id="auth-screen">
+  <div class="auth-logo">
+    <div class="auth-eyebrow">Jose Carrizo e Hijos</div>
+    <div class="auth-titulo">Piletero<br>App</div>
+    <div class="auth-sub">Tu pileta siempre lista</div>
+    <div class="auth-linea"></div>
+  </div>
+  <div class="auth-card">
+    <div class="tabs">
+      <button class="tab activa" id="tab-login">Ingresar</button>
+      <button class="tab" id="tab-register">Registrarse</button>
+    </div>
+    <div class="panel visible" id="panel-login">
+      <div class="campo"><label>Email</label><input type="email" id="l-email" placeholder="tu@email.com"></div>
+      <div class="campo"><label>Contrasena</label><input type="password" id="l-pass" placeholder="........"></div>
+      <button class="btn-auth" id="btn-login">Ingresar</button>
+      <div class="msj" id="msj-login"></div>
+    </div>
+    <div class="panel" id="panel-register">
+      <div class="campo"><label>Nombre</label><input type="text" id="r-nombre" placeholder="Tu nombre"></div>
+      <div class="campo"><label>Email</label><input type="email" id="r-email" placeholder="tu@email.com"></div>
+      <div class="campo"><label>Contrasena</label><input type="password" id="r-pass" placeholder="Minimo 6 caracteres"></div>
+      <button class="btn-auth" id="btn-register">Crear cuenta gratis</button>
+      <div class="msj" id="msj-register"></div>
+    </div>
+  </div>
+</div>
+
+<div class="topbar">
+  <div class="topbar-logo">PileteroApp</div>
+  <div class="topbar-seccion" id="topbar-sec">Inicio</div>
+  <button class="btn-salir" id="btn-salir">Salir</button>
+</div>
+
+<div id="pantallas-wrap">
+  <div id="pantallas">
+
+    <!-- INICIO -->
+    <div class="pantalla"><div class="p-inner">
+      <div class="dash-hero">
+        <img class="dash-hero-img" src="https://images.unsplash.com/photo-1562280963-8a5475740a10?w=800&q=80" alt="pileta" />
+        <div class="dash-hero-overlay"></div>
+        <div class="dash-hero-content">
+          <div class="dash-eye">Jose Carrizo e Hijos</div>
+          <div class="dash-nom" id="dash-nom">Bienvenido</div>
+          <div class="dash-estado"><div class="edo-dot" id="edo-dot"></div><div class="edo-txt" id="edo-txt">Sin mediciones aun</div></div>
+        </div>
+      </div>
+      <div class="params-grid">
+        <div class="pc ph">
+          <div class="pc-icon-row">
+            <div class="pc-lbl">pH</div>
+            <svg class="pc-icon" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="1.5"><path d="M12 2C8 2 4 8 4 14a8 8 0 0 0 16 0c0-6-4-12-8-12z"/><text x="6.5" y="17" font-size="6" fill="var(--cyan)" stroke="none" font-family="Arial" font-weight="bold">pH</text></svg>
+          </div>
+          <div class="pc-val" id="d-ph">-</div><div class="pc-unit">nivel</div><div class="badge b-ok" id="d-ph-b" style="display:none"></div>
+        </div>
+        <div class="pc cl">
+          <div class="pc-icon-row">
+            <div class="pc-lbl">Cloro</div>
+            <svg class="pc-icon" viewBox="0 0 24 24" fill="none" stroke="var(--verde)" stroke-width="1.5"><path d="M12 2C8 2 4 8 4 14a8 8 0 0 0 16 0c0-6-4-12-8-12z"/><circle cx="14.5" cy="14.5" r="5" fill="var(--azul)" stroke="var(--verde)" stroke-width="1.5"/><text x="12.2" y="17.5" font-size="4" fill="var(--verde)" stroke="none" font-family="Arial" font-weight="bold">CL</text></svg>
+          </div>
+          <div class="pc-val" id="d-cl">-</div><div class="pc-unit">ppm</div><div class="badge b-ok" id="d-cl-b" style="display:none"></div>
+        </div>
+        <div class="pc al">
+          <div class="pc-icon-row">
+            <div class="pc-lbl">Algicida</div>
+            <svg class="pc-icon" viewBox="0 0 24 24" fill="none" stroke="var(--amarillo)" stroke-width="1.8"><path d="M9 2h6v3l2 3v12a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V8l2-3V2z"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="7" y1="15" x2="17" y2="15"/></svg>
+          </div>
+          <div class="pc-val" id="d-al">-</div><div class="pc-unit">ml</div>
+        </div>
+        <div class="pc fe">
+          <div class="pc-icon-row">
+            <div class="pc-lbl">Ultima vez</div>
+            <svg class="pc-icon" viewBox="0 0 24 24" fill="none" stroke="var(--gris)" stroke-width="1.8"><path d="M3 12a9 9 0 1 0 9-9 9 9 0 0 0-5.74 2.07"/><polyline points="3 3 3 8 8 8"/><polyline points="12 7 12 12 15 14"/></svg>
+          </div>
+          <div class="pc-val" style="font-size:15px;margin-top:4px" id="d-fe">Sin datos</div>
+        </div>
+      </div>
+      <div class="cal-card">
+        <div class="cal-header">
+          <button class="cal-nav" id="cal-prev">&#8249;</button>
+          <div class="cal-mes-wrap">
+            <div class="cal-mes" id="cal-mes-titulo">Junio 2026</div>
+            <div class="cal-stats" id="cal-stats">0 mantenimientos este mes</div>
+          </div>
+          <button class="cal-nav" id="cal-next">&#8250;</button>
+        </div>
+        <div class="cal-dias-header">
+          <span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span>
+        </div>
+        <div class="cal-grid" id="cal-grid"></div>
+        <div class="cal-footer">
+          <div class="cal-leyenda"><span class="cal-dot" style="background:var(--cyan)"></span><span>Mantenimiento</span></div>
+          <div class="cal-leyenda"><span class="cal-dot" style="background:var(--verde)"></span><span>Hoy</span></div>
+          <div class="cal-leyenda"><span class="cal-dot" style="background:rgba(0,200,255,0.2)"></span><span>Programado</span></div>
+        </div>
+      </div>
+    </div></div>
+
+    <!-- CALCULADORA -->
+    <div class="pantalla"><div class="p-inner">
+      <div class="sec-titulo">Calculadora</div>
+      <div class="sec-sub">Cuanto producto necesitas?</div>
+      <div class="card-tit">Volumen de tu pileta</div>
+      <div class="vol-btns">
+        <button class="vb" id="vb10">10.000 L</button>
+        <button class="vb" id="vb20">20.000 L</button>
+        <button class="vb" id="vb30">30.000 L</button>
+        <button class="vb" id="vb50">50.000 L</button>
+      </div>
+      <div class="vol-custom"><input type="number" id="vol-c" placeholder="Otro volumen"><span>Litros</span></div>
+      <div class="card-tit">Estado del agua</div>
+      <div class="sl-wrap">
+        <div class="sl-head"><span class="sl-lbl">pH actual</span><span class="sl-val" id="ph-v">7.4</span></div>
+        <input type="range" id="sl-ph" min="6.5" max="8.5" step="0.1" value="7.4">
+        <div class="sl-range"><span>6.5</span><span class="ideal">Ideal: 7.2-7.6</span><span>8.5</span></div>
+      </div>
+      <div class="sl-wrap">
+        <div class="sl-head"><span class="sl-lbl">Cloro libre (ppm)</span><span class="sl-val" id="cl-v">1.5</span></div>
+        <input type="range" id="sl-cl" min="0" max="5" step="0.1" value="1.5">
+        <div class="sl-range"><span>0</span><span class="ideal">Ideal: 1-3 ppm</span><span>5</span></div>
+      </div>
+      <div class="card-tit">Lo que necesitas agregar</div>
+      <div class="res-grid" id="res-grid"></div>
+    </div></div>
+
+    <!-- 12 PASOS -->
+    <div class="pantalla"><div class="p-inner">
+      <div class="sec-titulo">12 Pasos</div>
+      <div class="sec-sub">Checklist de mantenimiento</div>
+      <div class="prog-card">
+        <div class="prog-head"><span class="prog-lbl">Progreso</span><span class="prog-num" id="prog-n">0 / 12</span></div>
+        <div class="prog-track"><div class="prog-fill" id="prog-f" style="width:0%"></div></div>
+      </div>
+      <div id="pasos-lista"></div>
+    </div></div>
+
+    <!-- HISTORIAL -->
+    <div class="pantalla"><div class="p-inner">
+      <div class="sec-titulo">Historial</div>
+      <div class="sec-sub">Registra cada mantenimiento</div>
+      <div class="med-form">
+        <div class="card-tit">Nueva medicion</div>
+        <div class="med-grid">
+          <div><label class="med-lbl">pH</label><input class="med-inp" type="number" id="m-ph" placeholder="7.4" step="0.1"></div>
+          <div><label class="med-lbl">Cloro</label><input class="med-inp" type="number" id="m-cl" placeholder="1.5" step="0.1"></div>
+          <div><label class="med-lbl">Algicida</label><input class="med-inp" type="number" id="m-al" placeholder="100" step="10"></div>
+        </div>
+        <button class="btn-grd" id="btn-guardar">Guardar medicion</button>
+      </div>
+      <div class="card-tit">Ultimas mediciones</div>
+      <div id="hist-lista"><div style="text-align:center;padding:24px;color:var(--gris);font-family:Barlow Condensed,sans-serif;font-size:13px;letter-spacing:1px">Sin mediciones aun</div></div>
+    </div></div>
+
+    <!-- PRO -->
+    <div class="pantalla"><div class="pro-sc">
+      <div class="pro-vid-wrap">
+        <iframe id="pro-vid" src="about:blank" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+        <div class="pro-vid-overlay"></div>
+      </div>
+      <div class="pro-cont">
+        <div class="pro-badge">Guia completa profesional</div>
+        <div class="pro-tit">Los 12 Pasos del Piletero</div>
+        <div class="pro-desc">Jose te muestra en video, en piletas reales, exactamente como hacer un mantenimiento profesional. Sin vueltas, sin relleno.</div>
+        <div class="pro-feats">
+          <div class="pro-feat">&#x1F3AC; 12 videos con Jose en accion</div>
+          <div class="pro-feat">&#x1F9EA; Guia completa de productos quimicos</div>
+          <div class="pro-feat">&#x267E;&#xFE0F; Acceso de por vida</div>
+          <div class="pro-feat">&#x1F4CB; Checklist interactivo por paso</div>
+        </div>
+        <button class="btn-comprar" id="btn-comprar">Quiero acceso completo</button>
+        <div class="pro-precio">Pago unico - <strong>$30.000 ARS</strong></div>
+      </div>
+    </div></div>
+
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <button class="ni activa" id="ni-0">
+    <span class="ni-icon"><svg viewBox="0 0 24 24" fill="var(--gris)" xmlns="http://www.w3.org/2000/svg"><path d="M2 20c1.5 0 2.5-1 4-1s2.5 1 4 1 2.5-1 4-1 2.5 1 4 1v2c-1.5 0-2.5-1-4-1s-2.5 1-4 1-2.5-1-4-1-2.5 1-4 1v-2zm7-8h6v2H9v-2zm0-4h6v2H9V8zm0-4h6v2H9V4zM7 4v12H5V4h2zm10 0v12h-2V4h2z"/></svg></span>
+    <span class="ni-lbl">Mi Pileta</span>
+    <div class="ni-dot"></div>
+  </button>
+  <button class="ni" id="ni-1">
+    <span class="ni-icon"><svg viewBox="0 0 24 24" fill="none" stroke="var(--gris)" stroke-width="1.8" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="2" width="16" height="20" rx="2"/><rect x="7" y="5" width="10" height="4" rx="1"/><line x1="7" y1="14" x2="10" y2="14"/><line x1="8.5" y1="12.5" x2="8.5" y2="15.5"/><line x1="14" y1="14" x2="17" y2="14"/><line x1="7" y1="18" x2="10" y2="18"/><line x1="14" y1="17" x2="17" y2="17"/><line x1="14" y1="19" x2="17" y2="19"/><line x1="7" y1="12.5" x2="10" y2="15.5"/></svg></span>
+    <span class="ni-lbl">Calcular</span>
+    <div class="ni-dot"></div>
+  </button>
+  <div class="ni-central-wrap">
+    <button class="ni-central" id="ni-2">
+      <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><circle cx="15" cy="3" r="1.5"/><path d="M4 20l3-6 2 2 3-3 1 7H4zm7-8l-2-3 3-2 3 5-4 .5V12zm5 2l2-8 2 1-2 8-2-1z"/><path d="M2 22c1.5 0 2.5-.8 4-.8s2.5.8 4 .8 2.5-.8 4-.8 2.5.8 4 .8v1.2c-1.5 0-2.5-.8-4-.8s-2.5.8-4 .8-2.5-.8-4-.8-2.5.8-4 .8V22z"/></svg>
+      <span class="ni-lbl">12 Pasos</span>
+    </button>
+  </div>
+  <button class="ni" id="ni-3">
+    <span class="ni-icon"><svg viewBox="0 0 24 24" fill="none" stroke="var(--gris)" stroke-width="1.8" xmlns="http://www.w3.org/2000/svg"><path d="M3 12a9 9 0 1 0 9-9 9 9 0 0 0-5.74 2.07"/><polyline points="3 3 3 8 8 8"/><polyline points="12 7 12 12 15 14"/></svg></span>
+    <span class="ni-lbl">Historial</span>
+    <div class="ni-dot"></div>
+  </button>
+  <button class="ni" id="ni-4">
+    <span class="ni-icon"><svg viewBox="0 0 24 24" fill="var(--gris)" xmlns="http://www.w3.org/2000/svg"><path d="M2 19h20v2H2v-2zm18-9l-4 4-4-8-4 8-4-4-2 9h20l-2-9z"/><circle cx="12" cy="4" r="1.5"/><circle cx="4" cy="9" r="1.5"/><circle cx="20" cy="9" r="1.5"/></svg></span>
+    <span class="ni-lbl">Pro</span>
+    <div class="ni-dot"></div>
+  </button>
+</nav>
+
+</div>
+<script>
+const SB_URL = 'https://qwdrddaigmnacdzwlhwm.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3ZHJkZGFpZ21uYWNkendsaHdtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2NTgwNDAsImV4cCI6MjA5NjIzNDA0MH0.htgA0cm1Ms7rffFm3RNRty3LF-rudRURlZwTjF0CaCg';
+const { createClient } = supabase;
+const sb = createClient(SB_URL, SB_KEY);
+
+const PASOS = [
+  {id:1, tit:'Inspeccion general', vid:'OrIgYLlrRkU'},
+  {id:2, tit:'Sacar las hojitas', vid:'ZPdWeFyH5TU'},
+  {id:3, tit:'Retrolavar', vid:'eS-raKtvf4k'},
+  {id:4, tit:'Poner a filtrar', vid:'2spj9N9VSNQ'},
+  {id:5, tit:'Preparar los elementos', vid:'E-QfiREHiWY'},
+  {id:6, tit:'Llenar la manguera', vid:'I7qL4lNEU0g'},
+  {id:7, tit:'Poner el limpifondo', vid:'xYPTC1QyNJ0'},
+  {id:8, tit:'Barrer el fondo', vid:'11n4budBTvI'},
+  {id:9, tit:'Sacar el barrefondo con manguera', vid:'6lhGwp8pGB0'},
+  {id:10, tit:'Limpiar los canastitos', vid:'chey_n1s9Jo'},
+  {id:11, tit:'Medir niveles de pH y cloro', vid:'wxRbDGurrEI'},
+  {id:12, tit:'Tirar los productos quimicos', vid:'tq_p6dT9uD4'}
+];
+
+let USER = null, ES_PRO = false, VOL = 20000;
+let CHECK = JSON.parse(localStorage.getItem('chk12') || '[]');
+let PANTALLA = 0, VID_TIMER = null, VID_SECS = 0, BTN_SHOWN = false;
+
+// AUTH
+sb.auth.getSession().then(({data}) => {
+  if (data.session) alLogin(data.session.user);
+});
+
+document.getElementById('tab-login').addEventListener('click', function() {
+  document.getElementById('tab-login').classList.add('activa');
+  document.getElementById('tab-register').classList.remove('activa');
+  document.getElementById('panel-login').classList.add('visible');
+  document.getElementById('panel-register').classList.remove('visible');
+});
+
+document.getElementById('tab-register').addEventListener('click', function() {
+  document.getElementById('tab-register').classList.add('activa');
+  document.getElementById('tab-login').classList.remove('activa');
+  document.getElementById('panel-register').classList.add('visible');
+  document.getElementById('panel-login').classList.remove('visible');
+});
+
+document.getElementById('btn-login').addEventListener('click', async function() {
+  const email = document.getElementById('l-email').value.trim();
+  const pass = document.getElementById('l-pass').value;
+  if (!email || !pass) { mostrarMsj('msj-login', 'Completa todos los campos.', 'error'); return; }
+  this.disabled = true; this.textContent = 'Ingresando...';
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+  if (error) {
+    mostrarMsj('msj-login', 'Email o contrasena incorrectos.', 'error');
+    this.disabled = false; this.textContent = 'Ingresar';
+  } else {
+    alLogin(data.user);
+  }
+});
+
+document.getElementById('btn-register').addEventListener('click', async function() {
+  const nombre = document.getElementById('r-nombre').value.trim();
+  const email = document.getElementById('r-email').value.trim();
+  const pass = document.getElementById('r-pass').value;
+  if (!nombre || !email || !pass) { mostrarMsj('msj-register', 'Completa todos los campos.', 'error'); return; }
+  if (pass.length < 6) { mostrarMsj('msj-register', 'La contrasena debe tener al menos 6 caracteres.', 'error'); return; }
+  this.disabled = true; this.textContent = 'Creando cuenta...';
+  const { data, error } = await sb.auth.signUp({ email, password: pass, options: { data: { nombre } } });
+  if (error) {
+    mostrarMsj('msj-register', error.message.includes('already') ? 'Ya existe una cuenta con ese email.' : error.message, 'error');
+    this.disabled = false; this.textContent = 'Crear cuenta gratis';
+  } else {
+    await sb.from('usuarios').upsert({ id: data.user.id, email, nombre, acceso_activo: false });
+    mostrarMsj('msj-register', 'Cuenta creada! Entrando...', 'ok');
+    setTimeout(() => alLogin(data.user), 1200);
+  }
+});
+
+document.getElementById('btn-salir').addEventListener('click', async function() {
+  await sb.auth.signOut();
+  document.getElementById('auth-screen').classList.remove('oculto');
+});
+
+function mostrarMsj(id, txt, tipo) {
+  const el = document.getElementById(id);
+  el.textContent = txt; el.className = 'msj ' + tipo;
+}
+
+async function alLogin(user) {
+  USER = user;
+  const nombre = user.user_metadata?.nombre || user.email.split('@')[0];
+  document.getElementById('dash-nom').textContent = nombre;
+  document.getElementById('auth-screen').classList.add('oculto');
+  const { data } = await sb.from('usuarios').select('acceso_activo').eq('id', user.id).single();
+  ES_PRO = data?.acceso_activo || false;
+  renderPasos(); calcular(); cargarHistorial(); cargarUltima();
+}
+
+// NAVEGACION
+function irA(n) {
+  PANTALLA = n;
+  document.getElementById('pantallas').style.transform = 'translateX(-' + (n * 100) + '%)';
+  // Regular nav items
+  [0,1,3,4].forEach(i => {
+    const el = document.getElementById('ni-' + i);
+    if (el) el.classList.toggle('activa', i === n);
+  });
+  // Central button highlight
+  const central = document.getElementById('ni-2');
+  if (central) {
+    if (n === 2) {
+      central.style.boxShadow = '0 0 32px rgba(0,200,255,0.7),0 -4px 16px rgba(0,200,255,0.3)';
+      central.style.transform = 'scale(1.05)';
+    } else {
+      central.style.boxShadow = '0 0 24px rgba(0,200,255,0.45),0 -4px 16px rgba(0,200,255,0.2)';
+      central.style.transform = 'scale(1)';
+    }
+  }
+  const noms = ['Mi Pileta', 'Calcular', '12 Pasos', 'Historial', 'Pro'];
+  document.getElementById('topbar-sec').textContent = noms[n];
+  if (n === 4) activarVid(); else pararVid();
+}
+
+// Nav listeners
+document.getElementById('ni-0').addEventListener('click', () => irA(0));
+document.getElementById('ni-1').addEventListener('click', () => irA(1));
+document.getElementById('ni-2').addEventListener('click', () => irA(2));
+document.getElementById('ni-3').addEventListener('click', () => irA(3));
+document.getElementById('ni-4').addEventListener('click', () => irA(4));
+// acc buttons removed - using nav
+
+
+
+
+// SWIPE
+let TX = 0, TY = 0;
+const PW = document.getElementById('pantallas-wrap');
+PW.addEventListener('touchstart', e => { TX = e.touches[0].clientX; TY = e.touches[0].clientY; }, {passive:true});
+PW.addEventListener('touchend', e => {
+  const dx = TX - e.changedTouches[0].clientX;
+  const dy = Math.abs(TY - e.changedTouches[0].clientY);
+  if (Math.abs(dx) > 50 && Math.abs(dx) > dy) {
+    if (dx > 0 && PANTALLA < 4) irA(PANTALLA + 1);
+    if (dx < 0 && PANTALLA > 0) irA(PANTALLA - 1);
+  }
+}, {passive:true});
+
+// CALCULADORA
+document.getElementById('vb10').addEventListener('click', function() { setVol(10000, this); });
+document.getElementById('vb20').addEventListener('click', function() { setVol(20000, this); });
+document.getElementById('vb30').addEventListener('click', function() { setVol(30000, this); });
+document.getElementById('vb50').addEventListener('click', function() { setVol(50000, this); });
+document.getElementById('vol-c').addEventListener('input', function() { VOL = parseInt(this.value) || 20000; document.querySelectorAll('.vb').forEach(b => b.classList.remove('activa')); calcular(); });
+document.getElementById('sl-ph').addEventListener('input', function() { document.getElementById('ph-v').textContent = parseFloat(this.value).toFixed(1); calcular(); });
+document.getElementById('sl-cl').addEventListener('input', function() { document.getElementById('cl-v').textContent = parseFloat(this.value).toFixed(1); calcular(); });
+
+function setVol(v, btn) {
+  VOL = v;
+  document.querySelectorAll('.vb').forEach(b => b.classList.remove('activa'));
+  btn.classList.add('activa');
+  document.getElementById('vol-c').value = '';
+  calcular();
+}
+
+function calcular() {
+  const ph = parseFloat(document.getElementById('sl-ph').value);
+  const cl = parseFloat(document.getElementById('sl-cl').value);
+  const f = VOL / 10000;
+  const SVG_PH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C8 2 4 8 4 14a8 8 0 0 0 16 0c0-6-4-12-8-12z"/><text x="7" y="17" font-size="6" fill="currentColor" stroke="none" font-family="Arial" font-weight="bold">pH</text></svg>';
+  const SVG_CL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C8 2 4 8 4 14a8 8 0 0 0 16 0c0-6-4-12-8-12z"/><circle cx="14.5" cy="14.5" r="5" fill="var(--azul)" stroke="currentColor" stroke-width="1.5"/><text x="12" y="18" font-size="4.5" fill="currentColor" stroke="none" font-family="Arial" font-weight="bold">CL</text></svg>';
+  const SVG_BOT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" xmlns="http://www.w3.org/2000/svg"><path d="M9 2h6v3l2 3v12a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V8l2-3V2z"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="7" y1="15" x2="17" y2="15"/></svg>';
+  const items = [
+    {e:SVG_PH, n:'pH Menos', d:ph>7.6?Math.round(f*125):0, u:'gr', nt:ph<=7.6?'No necesitas':''},
+    {e:SVG_PH, n:'pH Mas', d:ph<7.2?Math.round(f*125):0, u:'gr', nt:ph>=7.2?'No necesitas':''},
+    {e:SVG_CL, n:'Cloro Gran.', d:cl<1?Math.round(f*175):cl<2?Math.round(f*100):0, u:'gr', nt:cl>=2?'Nivel OK':''},
+    {e:SVG_BOT, n:'Algicida', d:Math.round(f*100), u:'ml', nt:'Preventivo semanal'}
+  ];
+  document.getElementById('res-grid').innerHTML = items.map(i =>
+    '<div class="res-item"><div class="ri-emoji">' + i.e + '</div><div class="ri-nom">' + i.n + '</div><div class="ri-dos">' + (i.d||'0') + '</div><div class="ri-unit">' + i.u + '</div>' + (i.nt?'<div class="ri-nota">'+i.nt+'</div>':'') + '</div>'
+  ).join('');
+}
+
+// CHECKLIST
+function renderPasos() {
+  document.getElementById('pasos-lista').innerHTML = PASOS.map(p => {
+    const hecho = CHECK.includes(p.id);
+    const vidHTML = ES_PRO
+      ? '<div class="vid-wrap"><iframe src="https://www.youtube.com/embed/' + p.vid + '?rel=0&modestbranding=1" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>'
+      : '<div class="vid-lock"><div class="lock-ico">&#x1F512;</div><div class="lock-txt">Compra el acceso completo<br>para ver el video de este paso</div><button class="lock-btn" data-ir="4">Ver oferta</button></div>';
+    return '<div class="paso-item' + (hecho?' hecho':'') + '" id="pi-'+p.id+'"><div class="paso-head" data-pid="'+p.id+'"><div class="paso-n">'+String(p.id).padStart(2,'0')+'</div><div class="paso-tit">'+p.tit+'</div><div class="paso-chk" data-chk="'+p.id+'">'+(hecho?'&#x2713;':'')+'</div><div class="paso-chv">&#x25BE;</div></div><div class="paso-body">'+vidHTML+'<button class="btn-comp" data-chk="'+p.id+'">'+(hecho?'&#x2713; Completado':'Marcar completado')+'</button></div></div>';
+  }).join('');
+  actualizarProg();
+  // Event listeners para pasos
+  document.querySelectorAll('.paso-head').forEach(el => {
+    el.addEventListener('click', function() {
+      const id = parseInt(this.dataset.pid);
+      const card = document.getElementById('pi-' + id);
+      const abierto = card.classList.contains('abierto');
+      document.querySelectorAll('.paso-item').forEach(c => c.classList.remove('abierto'));
+      if (!abierto) card.classList.add('abierto');
+    });
+  });
+  document.querySelectorAll('[data-chk]').forEach(el => {
+    el.addEventListener('click', function(e) {
+      e.stopPropagation();
+      const id = parseInt(this.dataset.chk);
+      const idx = CHECK.indexOf(id);
+      if (idx > -1) CHECK.splice(idx, 1); else CHECK.push(id);
+      localStorage.setItem('chk12', JSON.stringify(CHECK));
+      renderPasos();
+    });
+  });
+  document.querySelectorAll('[data-ir]').forEach(el => {
+    el.addEventListener('click', function(e) {
+      e.stopPropagation();
+      irA(parseInt(this.dataset.ir));
+    });
+  });
+}
+
+function actualizarProg() {
+  const d = CHECK.length;
+  document.getElementById('prog-n').textContent = d + ' / 12';
+  document.getElementById('prog-f').style.width = (d/12*100) + '%';
+}
+
+// HISTORIAL
+document.getElementById('btn-guardar').addEventListener('click', async function() {
+  if (!USER) return;
+  const ph = parseFloat(document.getElementById('m-ph').value);
+  const cl = parseFloat(document.getElementById('m-cl').value);
+  const al = parseFloat(document.getElementById('m-al').value);
+  if (!ph && !cl) { alert('Ingresa al menos pH y cloro.'); return; }
+  await sb.from('mediciones').insert({ user_id: USER.id, ph, cloro: cl, algicida: al, fecha: new Date().toISOString() });
+  document.getElementById('m-ph').value = '';
+  document.getElementById('m-cl').value = '';
+  document.getElementById('m-al').value = '';
+  cargarHistorial(); cargarUltima();
+});
+
+async function cargarHistorial() {
+  if (!USER) return;
+  const { data } = await sb.from('mediciones').select('*').eq('user_id', USER.id).order('fecha', {ascending: false}).limit(10);
+  if (!data || !data.length) return;
+  const M = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  document.getElementById('hist-lista').innerHTML = data.map(m => {
+    const d = new Date(m.fecha);
+    return '<div class="hist-item"><div class="hf"><div class="hf-dia">'+d.getDate()+'</div><div class="hf-mes">'+M[d.getMonth()]+'</div></div><div class="hd"></div><div class="hp"><div class="hpi"><div class="hpi-l">pH</div><div class="hpi-v">'+(m.ph||'-')+'</div></div><div class="hpi"><div class="hpi-l">Cloro</div><div class="hpi-v">'+(m.cloro||'-')+'</div></div><div class="hpi"><div class="hpi-l">Algicida</div><div class="hpi-v">'+(m.algicida||'-')+'</div></div></div></div>';
+  }).join('');
+}
+
+async function cargarUltima() {
+  if (!USER) return;
+  const { data } = await sb.from('mediciones').select('*').eq('user_id', USER.id).order('fecha', {ascending: false}).limit(1);
+  if (!data || !data.length) return;
+  const m = data[0]; const d = new Date(m.fecha);
+  const M = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  document.getElementById('d-ph').textContent = m.ph || '-';
+  document.getElementById('d-cl').textContent = m.cloro || '-';
+  document.getElementById('d-al').textContent = m.algicida || '-';
+  document.getElementById('d-fe').textContent = d.getDate() + ' ' + M[d.getMonth()];
+  if (m.ph) {
+    const b = document.getElementById('d-ph-b'); b.style.display = 'inline-block';
+    if (m.ph >= 7.2 && m.ph <= 7.6) { b.className='badge b-ok'; b.textContent='OK'; }
+    else if (m.ph > 7.6) { b.className='badge b-alto'; b.textContent='Alto'; }
+    else { b.className='badge b-bajo'; b.textContent='Bajo'; }
+  }
+  if (m.cloro) {
+    const b = document.getElementById('d-cl-b'); b.style.display = 'inline-block';
+    if (m.cloro >= 1 && m.cloro <= 3) { b.className='badge b-ok'; b.textContent='OK'; }
+    else if (m.cloro > 3) { b.className='badge b-alto'; b.textContent='Alto'; }
+    else { b.className='badge b-bajo'; b.textContent='Bajo'; }
+  }
+  const ok = m.ph >= 7.2 && m.ph <= 7.6 && m.cloro >= 1 && m.cloro <= 3;
+  document.getElementById('edo-txt').textContent = ok ? 'Agua en perfecto estado' : 'Revisa los parametros';
+  document.getElementById('edo-dot').style.background = ok ? 'var(--verde)' : 'var(--amarillo)';
+}
+
+// VIDEO PRO
+document.getElementById('btn-comprar').addEventListener('click', function() {
+  window.open('https://piletero-pasos.vercel.app', '_blank');
+});
+document.getElementById('btn-ir-pasos').addEventListener('click', function() {
+  irA(2);
+});
+document.getElementById('btn-ir-web').addEventListener('click', function() {
+  window.open('https://piletero-pasos.vercel.app', '_blank');
+});
+
+function activarVid() {
+  // Show correct content based on pro status
+  const contVenta = document.getElementById('pro-cont-venta');
+  const contAcceso = document.getElementById('pro-cont-acceso');
+  if (ES_PRO) {
+    if (contVenta) contVenta.style.display = 'none';
+    if (contAcceso) contAcceso.style.display = 'block';
+    // No video for pro users - just show access confirmation
+    document.getElementById('pro-vid').src = 'about:blank';
+    document.querySelector('.pro-vid-wrap').style.display = 'none';
+  } else {
+    if (contVenta) contVenta.style.display = 'block';
+    if (contAcceso) contAcceso.style.display = 'none';
+    document.querySelector('.pro-vid-wrap').style.display = 'block';
+    document.getElementById('pro-vid').src = 'https://www.youtube.com/embed/xmgrLxXH9VA?autoplay=1&mute=0&controls=1&rel=0&modestbranding=1&playsinline=1';
+    if (!BTN_SHOWN) {
+      VID_SECS = 0; clearInterval(VID_TIMER);
+      VID_TIMER = setInterval(function() {
+        VID_SECS++;
+        if (VID_SECS >= 30 && !BTN_SHOWN) {
+          BTN_SHOWN = true;
+          document.getElementById('btn-comprar').classList.add('visible');
+          clearInterval(VID_TIMER);
+        }
+      }, 1000);
+    } else {
+      document.getElementById('btn-comprar').classList.add('visible');
+    }
+  }
+}
+
+function pararVid() {
+  document.getElementById('pro-vid').src = 'about:blank';
+  clearInterval(VID_TIMER);
+}
+
+// INIT
+calcular();
+renderPasos();
+// ── CALENDARIO ──
+let calAno = new Date().getFullYear();
+let calMes = new Date().getMonth();
+let mantenimientos = JSON.parse(localStorage.getItem('mant-dias') || '{}');
+let programados = JSON.parse(localStorage.getItem('mant-prog') || '[]');
+
+function renderCal() {
+  const hoy = new Date();
+  const primerDia = new Date(calAno, calMes, 1);
+  const ultimoDia = new Date(calAno, calMes + 1, 0);
+  const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  
+  document.getElementById('cal-mes-titulo').textContent = meses[calMes] + ' ' + calAno;
+  
+  // Count mantenimientos this month
+  const key = calAno + '-' + calMes;
+  const diasMes = Object.keys(mantenimientos).filter(k => k.startsWith(key)).length;
+  document.getElementById('cal-stats').textContent = diasMes + ' mantenimiento' + (diasMes !== 1 ? 's' : '') + ' este mes';
+  
+  // Build grid
+  let html = '';
+  // Day of week of first day (0=Sun, but we want Mon first)
+  let startDay = primerDia.getDay();
+  startDay = startDay === 0 ? 6 : startDay - 1; // Convert to Mon-first
+  
+  // Previous month days
+  for (let i = 0; i < startDay; i++) {
+    const d = new Date(calAno, calMes, -startDay + i + 1);
+    html += '<div class="cal-dia otro-mes">' + d.getDate() + '</div>';
+  }
+  
+  // Current month days
+  for (let d = 1; d <= ultimoDia.getDate(); d++) {
+    const fecha = calAno + '-' + calMes + '-' + d;
+    const esHoy = hoy.getFullYear() === calAno && hoy.getMonth() === calMes && hoy.getDate() === d;
+    const tieneMant = mantenimientos[fecha];
+    const esProg = programados.includes(fecha);
+    
+    let clases = 'cal-dia';
+    if (esHoy) clases += ' hoy';
+    if (tieneMant) clases += ' mantenimiento';
+    if (esProg && !tieneMant) clases += ' programado';
+    
+    html += '<div class="' + clases + '" data-fecha="' + fecha + '">' + d + '</div>';
+  }
+  
+  // Next month days to fill grid
+  const totalCeldas = Math.ceil((startDay + ultimoDia.getDate()) / 7) * 7;
+  const restantes = totalCeldas - startDay - ultimoDia.getDate();
+  for (let d = 1; d <= restantes; d++) {
+    html += '<div class="cal-dia otro-mes">' + d + '</div>';
+  }
+  
+  document.getElementById('cal-grid').innerHTML = html;
+  
+  // Click handlers
+  document.querySelectorAll('.cal-dia:not(.otro-mes)').forEach(el => {
+    el.addEventListener('click', function() {
+      const f = this.dataset.fecha;
+      if (!f) return;
+      if (mantenimientos[f]) {
+        delete mantenimientos[f];
+        this.classList.remove('mantenimiento');
+      } else {
+        mantenimientos[f] = true;
+        this.classList.add('mantenimiento');
+      }
+      localStorage.setItem('mant-dias', JSON.stringify(mantenimientos));
+      renderCal();
+    });
+  });
+}
+
+document.getElementById('cal-prev').addEventListener('click', function() {
+  calMes--;
+  if (calMes < 0) { calMes = 11; calAno--; }
+  renderCal();
+});
+
+document.getElementById('cal-next').addEventListener('click', function() {
+  calMes++;
+  if (calMes > 11) { calMes = 0; calAno++; }
+  renderCal();
+});
+
+// Remove old acc listeners that no longer exist
+// document.getElementById('acc-calc') etc removed
+
+renderCal();
+
+</script>
+</body>
+</html>
